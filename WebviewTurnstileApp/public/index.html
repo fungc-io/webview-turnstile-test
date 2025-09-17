@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudflare Turnstile Test</title>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .turnstile-container {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+        }
+        .info {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            margin: 20px auto;
+        }
+        button:hover {
+            background: #0052a3;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ Cloudflare Turnstile Test</h1>
+
+        <div class="info">
+            <strong>Note:</strong> This is using Cloudflare's demo site key. For production, you'll need to:
+            <ol>
+                <li>Get your site key from Cloudflare Dashboard</li>
+                <li>Replace the site key in the cf-turnstile div</li>
+                <li>Set up server-side verification with your secret key</li>
+            </ol>
+        </div>
+
+        <div class="turnstile-container">
+            <div class="cf-turnstile"
+                 data-sitekey="{{TURNSTILE_SITEKEY}}"
+                 data-callback="onTurnstileSuccess"
+                 data-error-callback="onTurnstileError"
+                 data-expired-callback="onTurnstileExpired">
+            </div>
+        </div>
+
+        <button onclick="resetTurnstile()">Reset Turnstile</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function verifyTokenWithServer(token) {
+            try {
+                const response = await fetch('/verify-turnstile', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ token })
+                });
+
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('Server verification error:', error);
+                return { success: false, error: 'Network error' };
+            }
+        }
+
+        async function onTurnstileSuccess(token) {
+            console.log('Turnstile success:', token);
+
+            // Show token immediately
+            document.getElementById('result').innerHTML = `
+                <h3>✅ Token Received!</h3>
+                <p><strong>Token:</strong></p>
+                <p style="word-break: break-all; font-size: 12px;">${token}</p>
+                <p><strong>Token length:</strong> ${token.length} characters</p>
+                <p>🔄 Verifying with server...</p>
+            `;
+
+            // Verify with server
+            const verification = await verifyTokenWithServer(token);
+
+            if (verification.success) {
+                document.getElementById('result').innerHTML = `
+                    <h3>✅ Verification Successful!</h3>
+                    <p><strong>Token:</strong></p>
+                    <p style="word-break: break-all; font-size: 12px;">${token}</p>
+                    <p><strong>Server Response:</strong> ${verification.message}</p>
+                    <p><strong>Challenge Time:</strong> ${verification.challenge_ts || 'N/A'}</p>
+                    <p><strong>Hostname:</strong> ${verification.hostname || 'N/A'}</p>
+                `;
+            } else {
+                document.getElementById('result').innerHTML = `
+                    <h3>❌ Server Verification Failed</h3>
+                    <p><strong>Token:</strong></p>
+                    <p style="word-break: break-all; font-size: 12px;">${token}</p>
+                    <p><strong>Error:</strong> ${verification.error}</p>
+                    <p><strong>Error Codes:</strong> ${verification['error-codes'] ? verification['error-codes'].join(', ') : 'N/A'}</p>
+                `;
+            }
+        }
+
+        function onTurnstileError(error) {
+            console.error('Turnstile error:', error);
+            document.getElementById('result').innerHTML = `
+                <h3>❌ Turnstile Error</h3>
+                <p>Turnstile failed with error: ${error}</p>
+            `;
+        }
+
+        function onTurnstileExpired() {
+            console.log('Turnstile expired');
+            document.getElementById('result').innerHTML = `
+                <h3>⏰ Expired</h3>
+                <p>Turnstile token has expired. Please try again.</p>
+            `;
+        }
+
+        function resetTurnstile() {
+            turnstile.reset();
+            document.getElementById('result').innerHTML = `
+                <h3>🔄 Ready</h3>
+                <p>Complete the Turnstile challenge above to test the integration.</p>
+            `;
+        }
+
+        // Log when page loads for debugging
+        window.addEventListener('load', function() {
+            console.log('Turnstile test page loaded');
+            document.getElementById('result').innerHTML = `
+                <h3>🔄 Ready</h3>
+                <p>Complete the Turnstile challenge above to test the integration.</p>
+            `;
+        });
+    </script>
+</body>
+</html>
