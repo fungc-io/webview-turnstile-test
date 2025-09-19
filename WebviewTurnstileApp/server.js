@@ -8,7 +8,6 @@ const PORT = process.env.PORT || 3000;
 const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET || 'YOUR_SECRET_KEY_HERE';
 const TURNSTILE_SITEKEY = process.env.TURNSTILE_SITEKEY || 'YOUR_SITE_KEY_HERE';
 
-app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
 app.get('/', (req, res) => {

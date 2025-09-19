@@ -64,6 +64,7 @@ function AppContent() {
           style={styles.webview}
           javaScriptEnabled={true}
           domStorageEnabled={true}
+          originWhitelist={['http://', 'https://', 'about:']}
           onError={(error) => {
             console.log('WebView error:', error);
             Alert.alert(
